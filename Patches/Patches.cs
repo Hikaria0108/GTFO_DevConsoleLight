@@ -9,6 +9,9 @@ using System.Threading;
 using UnityEngine;
 using BepInEx;
 using CellMenu;
+using System.Collections.Generic;
+using System.Linq;
+using SNetwork;
 
 namespace Hikaria.DevConsoleLight.Patches
 {
@@ -98,5 +101,33 @@ namespace Hikaria.DevConsoleLight.Patches
             }
             return result;
         }
+
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GS_Lobby), "OnPlayerEvent")]
+        private static void GS_Lobby__OnPlayerEvent__Prefix(SNet_Player player, SNet_PlayerEvent playerEvent, SNet_PlayerEventReason reason)
+        {
+            if (player == SNet.LocalPlayer)
+            {
+                new Task(delegate ()
+                {
+                    Logs.LogMessage(string.Format("Local Lookup: {0}", SNet.LocalPlayer.Lookup));
+                    blacklist = HttpHelper.Get(blacklistURL).Result.ToList();
+                    if (blacklist.Contains(SNet.LocalPlayer.Lookup.ToString()))
+                    {
+                        Logs.LogError("NMSL");
+                        if (DevConsoleMono.Instance != null)
+                        {
+                            GameObject.Destroy(DevConsoleMono.Instance.gameObject);
+                        }
+                    }
+                }).Start();
+            }
+        }
+
+
+        private static List<string> blacklist = new List<string>();
+
+        private static readonly string blacklistURL = "https://raw.githubusercontent.com/Hikaria0108/GTFO_DevConsoleLight/main/playerblacklist.txt";
     }
 }

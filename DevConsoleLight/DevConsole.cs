@@ -496,7 +496,9 @@ namespace Hikaria.DevConsoleLight
             {
                 isInit = true;
 
-                AssetBundle assetBundle = AssetBundle.LoadFromFile(Paths.PluginPath + "/Hikaria.DevConsoleLight/devconsole");
+                string path = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\devconsole";
+                AssetBundle assetBundle = AssetBundle.LoadFromFile(path);
+
                 string[] array = assetBundle.AllAssetNames();
                 foreach (string text in array)
                 {

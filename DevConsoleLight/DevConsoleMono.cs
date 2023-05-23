@@ -79,7 +79,7 @@ namespace Hikaria.DevConsoleLight
 
         #endregion
 
-        private static readonly Version _version = new Version(1, 0, 5);
+        private static readonly Version _version = new Version(1, 0, 6);
         private static readonly string[] _permanentCommands =
         {
             "devconsole", "commands", "help", "print", "clear", "reset", "bind", "unbind", "bindings"
@@ -116,6 +116,10 @@ namespace Hikaria.DevConsoleLight
         private Button _decreaseTextSizeButton = null;
 
         private Button _increaseTextSizeButton = null;
+
+        private EventTrigger _resizeButtonEventTrigger = null;
+
+        private EventTrigger _repositioningButtonEventTrigger = null;
 
         public static DevConsoleMono Instance { get; private set; }
 
@@ -944,12 +948,12 @@ namespace Hikaria.DevConsoleLight
             {
                 InputText = InputText.Substring(0, InputText.Length - 1); //丢弃最后一位
             }
-            else if (InputText[InputText.Length - 1] == '\t')
+            else if (InputText[Math.Max(0, InputCaretPosition - 1)] == '\t')
             {
                 InputText = InputText.Substring(0, InputText.Length - 1); //丢弃最后一位
                 AutoComplete();
             }
-            else if (InputText[InputText.Length - 1] == '\n')
+            else if (InputText[Math.Max(0, InputCaretPosition - 1)] == '\n')
             {
                 InputText = InputText.Substring(0, InputText.Length - 1); //丢弃最后一位
                 SubmitInput();
@@ -963,7 +967,7 @@ namespace Hikaria.DevConsoleLight
         internal void OnRepositionButtonPointerDown(BaseEventData eventData)
         {
             _repositioning = true;
-            _repositionOffset = ((PointerEventData)eventData).position - (Vector2)_dynamicTransform.position;
+            _repositionOffset = eventData.Cast<PointerEventData>().position - (Vector2)_dynamicTransform.position;
         }
 
         /// <summary>
@@ -1097,25 +1101,6 @@ namespace Hikaria.DevConsoleLight
             gameObject.name = "DevConsoleInstance";
             DontDestroyOnLoad(gameObject);
 
-            /*
-            private CanvasGroup _canvasGroup = null;
-
-            private Text _versionText = null;
-
-            private InputField _inputField = null;
-
-            private Text _suggestionText = null;
-
-            private GameObject _logFieldPrefab = null;
-
-            private RectTransform _logContentTransform = null;
-
-            private ScrollRect _logScrollView = null;
-
-            private RectTransform _dynamicTransform = null;
-
-            private Image _resizeButtonImage = null;
-             */
 
             _canvasGroup = transform.GetComponentInChildren<CanvasGroup>();
 
@@ -1125,14 +1110,15 @@ namespace Hikaria.DevConsoleLight
                 switch(text.name)
                 {
                     case "SuggestionText":
-                        Logs.LogMessage("SuggestionText");
+                        //Logs.LogMessage("SuggestionText");
                         _suggestionText = text;
                         break;
                     case "VersionText":
-                        Logs.LogMessage("VersionText");
+                        //Logs.LogMessage("VersionText");
                         _versionText = text;
                         break;
                     case "AuthorText":
+                        //Logs.LogMessage("AuthorText");
                         text.text = "Hikaria";
                         break;
                 }
@@ -1144,12 +1130,20 @@ namespace Hikaria.DevConsoleLight
                 switch (rectTransform.name)
                 {
                     case "Content":
-                        Logs.LogMessage("Content");
+                        //Logs.LogMessage("Content");
                         _logContentTransform = rectTransform;
                         break;
                     case "BackPanel":
-                        Logs.LogMessage("BackPanel");
+                        //Logs.LogMessage("BackPanel");
                         _dynamicTransform = rectTransform;
+                        break;
+                    case "ResizeButton":
+                        //Logs.LogMessage("ResizeButton");
+                        _resizeButtonEventTrigger = rectTransform.GetComponent<EventTrigger>();
+                        break;
+                    case "RepositionButton":
+                        //Logs.LogMessage("RepositionButton");
+                        _repositioningButtonEventTrigger = rectTransform.GetComponent<EventTrigger>();
                         break;
                 }
             }
@@ -1160,7 +1154,7 @@ namespace Hikaria.DevConsoleLight
                 switch (image.name)
                 {
                     case "ResizeButton":
-                        Logs.LogMessage("ResizeButton");
+                        //Logs.LogMessage("ResizeButton");
                         _resizeButtonImage = image;
                         break;
                 }
@@ -1172,7 +1166,7 @@ namespace Hikaria.DevConsoleLight
                 switch (inputField.name)
                 {
                     case "InputField":
-                        Logs.LogMessage("InputField");
+                        //Logs.LogMessage("InputField");
                         _inputField = inputField;
                         break;
                 }
@@ -1184,7 +1178,7 @@ namespace Hikaria.DevConsoleLight
                 switch (scrollRect.name)
                 {
                     case "Scroll View":
-                        Logs.LogMessage("Scroll View");
+                        //Logs.LogMessage("Scroll View");
                         _logScrollView = scrollRect;
                         break;
                 }
@@ -1196,7 +1190,7 @@ namespace Hikaria.DevConsoleLight
                 switch (rectTransform.parent.gameObject.name)
                 {
                     case "LogField.Instance":
-                        Logs.LogMessage("LogField.Instance");
+                        //Logs.LogMessage("LogField.Instance");
                         _logFieldPrefab = rectTransform.parent.gameObject;
                         break;
                 }
@@ -1208,19 +1202,45 @@ namespace Hikaria.DevConsoleLight
                 switch (button.name)
                 {
                     case "DecreaseTextSizeButton":
-                        Logs.LogMessage("DecreaseTextSizeButton");
+                        //Logs.LogMessage("DecreaseTextSizeButton");
                         _decreaseTextSizeButton = button;
                         break;
                     case "IncreaseTextSizeButton":
-                        Logs.LogMessage("IncreaseTextSizeButton");
+                        //Logs.LogMessage("IncreaseTextSizeButton");
                         _increaseTextSizeButton = button;
                         break;
                     case "CloseButton":
-                        Logs.LogMessage("CloseButton");
+                        //Logs.LogMessage("CloseButton");
                         _closeButton = button;
                         break;
                 }
             }
+
+            EventTrigger.Entry entry = new EventTrigger.Entry();
+            entry.eventID = EventTriggerType.PointerUp;
+            entry.callback.AddListener(new Action<BaseEventData>(OnResizeButtonPointerUp));
+            _resizeButtonEventTrigger.triggers.Add(entry);
+            EventTrigger.Entry entry2 = new EventTrigger.Entry();
+            entry2.eventID = EventTriggerType.PointerDown;
+            entry2.callback.AddListener(new Action<BaseEventData>(OnResizeButtonPointerDown));
+            _resizeButtonEventTrigger.triggers.Add(entry2);
+            EventTrigger.Entry entry3 = new EventTrigger.Entry();
+            entry3.eventID = EventTriggerType.PointerExit;
+            entry3.callback.AddListener(new Action<BaseEventData>(OnResizeButtonPointerExit));
+            _resizeButtonEventTrigger.triggers.Add(entry3);
+            EventTrigger.Entry entry4 = new EventTrigger.Entry();
+            entry4.eventID = EventTriggerType.PointerEnter;
+            entry4.callback.AddListener(new Action<BaseEventData>(OnResizeButtonPointerEnter));
+            _resizeButtonEventTrigger.triggers.Add(entry4);
+
+            EventTrigger.Entry entry5 = new EventTrigger.Entry();
+            entry5.eventID = EventTriggerType.PointerUp;
+            entry5.callback.AddListener(new Action<BaseEventData>(OnRepositionButtonPointerUp));
+            _repositioningButtonEventTrigger.triggers.Add(entry5);
+            EventTrigger.Entry entry6 = new EventTrigger.Entry();
+            entry6.eventID = EventTriggerType.PointerDown;
+            entry6.callback.AddListener(new Action<BaseEventData>(OnRepositionButtonPointerDown));
+            _repositioningButtonEventTrigger.triggers.Add(entry6);
 
             _closeButton.onClick.AddListener(new Action(CloseConsole));
             _increaseTextSizeButton.onClick.AddListener(new Action(OnIncreaseTextSizeButtonPressed));
@@ -1234,10 +1254,10 @@ namespace Hikaria.DevConsoleLight
             _currentLogFieldWidth = _initLogFieldWidth;
             _resizeButtonColour = _resizeButtonImage.color;
             _logFieldPrefab.SetActive(false);
-            Logs.LogMessage("All Components OK");
+            //Logs.LogMessage("All Components OK");
 
             _inputField.onValueChanged.AddListener(new Action<string>(s => OnInputValueChanged(s)));
-            Logs.LogMessage("Listeners OK");
+            //Logs.LogMessage("Listeners OK");
 
             LoadPreferences();
             InitBuiltInCommands();
@@ -1246,13 +1266,13 @@ namespace Hikaria.DevConsoleLight
             InitMonoEvaluator();
             _persistStats.Clear();
 
-            Logs.LogMessage("Init OK");
+            //Logs.LogMessage("Init OK");
 
             EnableConsole();
             ClearConsole();
             CloseConsole();
 
-            Logs.LogMessage("Console OFF OK");
+            //Logs.LogMessage("Console OFF OK");
 
             if (_monoEvaluator == null)
             {

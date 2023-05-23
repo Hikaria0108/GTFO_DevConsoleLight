@@ -12,7 +12,7 @@ namespace Hikaria.DevConsoleLight
 
         public const string PLUGIN_GUID = "Hikaria.DevConsoleLight";
 
-        public const string PLUGIN_VERSION = "1.0.0";
+        public const string PLUGIN_VERSION = "1.0.6";
 
         public const string PLUGIN_AUTHOR= "ゼロツー";
     }
